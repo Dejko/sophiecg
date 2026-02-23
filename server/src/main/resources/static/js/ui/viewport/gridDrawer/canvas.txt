@@ -1,0 +1,57 @@
+ onCtrlLeftClick(event) {
+        event.preventDefault();
+        const { offsetX, offsetY } = event;
+        const startPatch = this.getPatchAt(offsetX, offsetY);
+        this.patchSelection.push(startPatch);
+
+        //startPatch measurements
+        const cell = startPatch.cell;
+        const x1 = cell.length;
+        const x2 = cell.height;
+
+        this.clearCanvas();
+        this.drawGrid();
+
+        console.log(this.patchSelection.length)
+
+        if (this.patchSelection.length >= 1) {
+
+            startPatch.drawOutline(this.ctx, startPatch.coords.x, startPatch.coords.y, x1 * this.cm, x2 * this.cm);
+
+            // Step 4: Find the smallest and largest row and column values
+            let minRow = Infinity, maxRow = -Infinity;
+            let minCol = Infinity, maxCol = -Infinity;
+
+            // Loop through the selection to find the min/max row/col
+            this.patchSelection.forEach(patch => {
+                const { row, col } = patch;
+
+                minRow = Math.min(minRow, row);
+                maxRow = Math.max(maxRow, row);
+                minCol = Math.min(minCol, col);
+                maxCol = Math.max(maxCol, col);
+            });
+
+            // Step 5: Add patches in between to the selection
+            for (let row = minRow; row <= maxRow; row++) {
+                for (let col = minCol; col <= maxCol; col++) {
+                    // Assuming getPatchAtPosition(row, col) retrieves a patch at row,col
+                    const patch = this.getPatchAtPosition(row, col); // Implement this method as needed
+
+                    if (patch && !this.patchSelection.includes(patch)) {
+                        this.patchSelection.push(patch);
+                        const cell = patch.cell;
+                        const x1 = cell.length;
+                        const x2 = cell.height;
+
+                        // Draw outline for each patch added to the selection
+                        patch.drawOutline(this.ctx, patch.coords.x, patch.coords.y, x1 * this.cm, x2 * this.cm);
+                    }
+                }
+            }
+
+        }
+
+        // Log the selected patches
+        console.log(this.patchSelection);
+    }

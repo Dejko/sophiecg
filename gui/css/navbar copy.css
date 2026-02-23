@@ -1,0 +1,73 @@
+.menu-btn {
+    outline: none;
+    padding: 3px 8px;
+    width: 50px;
+    border: none;
+    background-color: transparent;
+    color: #b1adad;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    width: auto;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+    margin-right: 10px;
+}
+
+
+.menu-btn:focus {
+    outline: none;
+    /* Ensures no outline when focused */
+}
+
+.menu-btn:hover {
+    display: block;
+
+}
+
+#navbar {
+    border-bottom: 1px #3838387a solid;
+
+}
+
+.nav-menu {
+    display: none;
+    position: absolute;
+}
+
+
+
+
+
+.menuList {
+    list-style-type: none;
+    /* Removes the default bullet points */
+    padding: 0;
+    margin: 0;
+    display: none;
+}
+
+.menuList li {
+
+    position: absolute;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    padding-left: 12px;
+}
+
+.menuList li:hover {
+    display: block;
+    background-color: #444;
+    /* Change background color on hover */
+}
+
+.menuList :hover {
+    display: block;
+    background-color: #444;
+    /* Change background color on hover */
+}
+
+#fileMenu :hover {
+    display: block;
+}

@@ -1,0 +1,164 @@
+    /*
+    const state = globalStateController.getState()
+    const { frameLength, substrateWidth } = state
+
+    const rulerCanvasWidthPx = cmToPixels(frameLength);
+    const rulerCanvasHeightPx = cmToPixels(substrateWidth);
+
+
+    const canvas = document.getElementById('rangeCanvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio;
+    const rect = canvas.getBoundingClientRect();
+    // Set the "actual" size of the canvas
+    canvas.width = rulerCanvasWidthPx;
+    canvas.height = rulerCanvasHeightPx;
+
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+
+    // Set the "drawn" size of the canvas
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
+    // The number of pixels for 1 cm at 96 DPI
+
+
+    const matrixData = globalStateController.getState()
+    const data = matrixData.matrix
+
+    if (!data || data.length < 1)
+        return data === 1
+
+    const rows = data.length
+
+    // Get number of columns (length of the first row)
+    const cols = data[0] ? data[0].length : 0;  // Handle case where there might be an empty row
+
+    // Get length and height from each cell
+    const cellDimensions = data.map(row =>
+        row.map(cell => ({
+            length: cell.cell.length,  // Assuming cell contains a 'length' property
+            height: cell.cell.height,  // Assuming cell contains a 'height' property
+            gap: cell.cell.gap
+        }))
+    );
+    const cm = 3.77952755906; // Pixels per cm (based on 96 DPI)
+    const firstCellLength = (cellDimensions[0][0].length) * cm;
+    const firstCellHeight = (cellDimensions[0][0].height) * cm;
+    const firstCellGap = (cellDimensions[0][0].gap) * cm;
+
+    console.log(`Rows: ${rows}, Columns: ${cols}`);
+    console.log("Cell Dimensions:", cellDimensions);
+    console.log("First Cell Length:", firstCellLength);
+    console.log("First Cell Height:", firstCellHeight);
+    console.log("First Cell Gap:", firstCellGap);
+
+
+
+    const rulerSize = 23
+    ctx.fillStyle = 'gray';
+    ctx.font = '10px Arial';
+
+
+    //ctx.fillRect(0, 0, 100, 100)
+
+
+    // Store the rectangle areas that will be clickable
+    const clickableRects = [];
+
+
+    //columns
+    for (let i = 0; i < (cols - 1 / dpr); i++) {
+        let x = (i * (firstCellLength + firstCellGap));
+
+        // Define the position and size of each rectangle
+        const rectX = x + rulerSize + (firstCellGap / 2);
+        const rectY = 3;
+        const rectWidth = firstCellLength - firstCellGap;
+        const rectHeight = rulerSize - 10;
+
+        // Draw a rectangle at each column position
+        ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+
+        // Store the rectangle's position and size for click detection
+        clickableRects.push({
+            x: rectX,
+            y: rectY,
+            width: rectWidth,
+            height: rectHeight,
+            index: i // Store the index for identifying the clicked rectangle
+        });
+
+        // Only draw the text after the first column
+        if (i > 0) {
+            // Set the font color to white for the text
+            ctx.fillStyle = 'white';  // Change the font color to white
+
+            // Adjust text position to fit within the ruler and move it slightly higher
+            const textX = x;
+            const textY = rulerSize - 10.5; // Move the text 2 pixels higher (adjust as needed)
+
+            // Draw the text (number)
+            ctx.fillText(i - 1, textX, textY);
+        }
+        ctx.fillStyle = 'gray'
+    }
+
+
+    //rows
+    for (let j = 0; j < (rows - 1 / dpr); j++) {
+        let y = (j * (firstCellHeight + firstCellGap));
+
+        // Define the position and size of each rectangle
+        const rectX = 3;
+        const rectY = y + rulerSize + (firstCellGap / 2);
+        const rectWidth = rulerSize - 10;
+        const rectHeight = firstCellHeight - firstCellGap;
+
+        // Draw a rectangle at each column position
+        ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+
+        // Store the rectangle's position and size for click detection
+        clickableRects.push({
+            x: rectX,
+            y: rectY,
+            width: rectWidth,
+            height: rectHeight,
+            index: String.fromCharCode(j + 65) // Store the index for identifying the clicked rectangle
+        });
+
+        // Only draw the text after the first column
+        if (j > 0) {
+            // Set the font color to white for the text
+            ctx.fillStyle = 'white';  // Change the font color to white
+            const letter = String.fromCharCode(j + 64);
+            // Adjust text position to fit within the ruler and move it slightly higher
+            const textX = rulerSize - 18;
+            const textY = y // Move the text 2 pixels higher (adjust as needed)
+
+            // Draw the text (number)
+            ctx.fillText(letter, textX, textY);
+        }
+        ctx.fillStyle = 'gray'
+    }
+
+
+    // Add click event listener to the canvas
+    canvas.addEventListener('click', function (event) {
+        // Get mouse click position relative to the canvas
+        const mouseX = event.offsetX;
+        const mouseY = event.offsetY;
+
+        // Loop through each clickable rectangle and check if the click is inside
+        for (let rect of clickableRects) {
+            if (
+                mouseX >= rect.x && mouseX <= rect.x + rect.width &&
+                mouseY >= rect.y && mouseY <= rect.y + rect.height
+            ) {
+                // Handle the click (for example, log the index of the clicked rectangle)
+                console.log('Rectangle clicked:', rect.index);
+                // You can perform any other action here, like highlighting the rectangle, changing its color, etc.
+            }
+        }
+    });
+*/

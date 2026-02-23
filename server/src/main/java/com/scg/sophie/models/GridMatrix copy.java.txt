@@ -1,0 +1,425 @@
+package com.scg.sophie.models;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSBase;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSFloat;
+import org.apache.pdfbox.cos.COSInteger;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.cos.COSStream;
+import org.apache.pdfbox.cos.COSString;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.common.function.PDFunction;
+import org.apache.pdfbox.pdmodel.common.function.PDFunctionType0;
+import org.apache.pdfbox.pdmodel.common.function.PDFunctionType2;
+import org.apache.pdfbox.pdmodel.common.function.PDFunctionType4;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceCMYK;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceN;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceNAttributes;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
+import org.apache.pdfbox.pdmodel.graphics.color.PDSeparation;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+
+import com.scg.sophie.utils.DeviceNColorSpaceBuilder;
+
+import org.apache.pdfbox.pdmodel.graphics.color.PDColorSpace;
+
+public class GridMatrix {
+    private List<List<Patch>> matrix;
+
+    public GridMatrix(int rows, int cols, List<List<Patch>> patchData) {
+        matrix = new ArrayList<>();
+
+        // Validate that the patchData matches the expected dimensions
+        if (patchData.size() != rows) {
+            throw new IllegalArgumentException("Number of rows in patch data does not match");
+        }
+
+        for (int i = 0; i < rows; i++) {
+            List<Patch> row = new ArrayList<>(cols);
+            if (patchData.get(i).size() != cols) {
+                throw new IllegalArgumentException("Number of columns in patch data does not match");
+            }
+
+            // Add patches to the matrix
+            for (int j = 0; j < cols; j++) {
+                // Using the patch data from the request
+                row.add(patchData.get(i).get(j));
+            }
+            matrix.add(row);
+        }
+    }
+
+    // Method to set a patch at a specific position in the matrix
+    public void setPatch(int row, int col, Patch patch) {
+        if (row >= 0 && row < matrix.size() && col >= 0 && col < matrix.get(row).size()) {
+            matrix.get(row).set(col, patch);
+        } else {
+            throw new IndexOutOfBoundsException("Invalid row or column index");
+        }
+    }
+
+    // Method to get a patch at a specific position in the matrix
+    public Patch getPatch(int row, int col) {
+        if (row >= 0 && row < matrix.size() && col >= 0 && col < matrix.get(row).size()) {
+            return matrix.get(row).get(col);
+        } else {
+            throw new IndexOutOfBoundsException("Invalid row or column index");
+        }
+    }
+
+    // Method to get the number of rows in the matrix
+    public int getRowCount() {
+        return matrix.size();
+    }
+
+    // Method to get the number of columns in a specific row
+    public int getColCount(int row) {
+        if (row >= 0 && row < matrix.size()) {
+            return matrix.get(row).size();
+        } else {
+            throw new IndexOutOfBoundsException("Invalid row index");
+        }
+    }
+
+    // Method to display the matrix (for debugging purposes)
+    public void displayMatrix() {
+        for (int i = 0; i < matrix.size(); i++) {
+            for (int j = 0; j < matrix.get(i).size(); j++) {
+                Patch patch = matrix.get(i).get(j);
+                if (patch != null) {
+                    System.out.print("[" + patch.getRowLabel() + ", " + patch.getCol() + "] ");
+                } else {
+                    System.out.print("[empty] ");
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    /**
+     * Method to draw the matrix of patches on a PDF.
+     *
+     * @param document      The PDDocument to draw on.
+     * @param page          The PDPage to draw on.
+     * @param contentStream The PDPageContentStream to draw on the page.
+     * @throws IOException If there's an issue while drawing.
+     */
+    public void drawMatrix(PDDocument document, PDPage page, PDPageContentStream contentStream) throws IOException {
+        float pageHeight = page.getMediaBox().getHeight(); // Get the height of the page
+        float patchHeight = matrix.get(0).get(0).getCell().getHeight(); // Assume all patches have the same height
+        float gap = matrix.get(0).get(0).getCell().getGap(); // Assume all patches have the same gap
+
+        // Iterate over the matrix and draw each patch
+        for (int row = 0; row < matrix.size(); row++) {
+            for (int col = 0; col < matrix.get(row).size(); col++) {
+                Patch patch = matrix.get(row).get(col);
+
+                // Coordinates for the patch
+                float x = (float) patch.getCoords().getX();
+                float y = pageHeight - ((row + 1) * (patchHeight + gap)); // Adjust Y-coordinate for row height and gap
+
+                // Draw the patch
+                drawPatch(document, page, contentStream, x, y, patch);
+            }
+        }
+    }
+
+    /**
+     * Helper method to draw a single patch on the PDF.
+     *
+     * @param contentStream The content stream.
+     * @param x             The X coordinate to start drawing the patch.
+     * @param y             The Y coordinate to start drawing the patch.
+     * @param patch         The patch object containing drawing data.
+     * @throws IOException If there's an issue while drawing.
+     */
+    private void drawPatch(PDDocument document, PDPage page, PDPageContentStream contentStream, float x, float yC,
+            Patch patch)
+            throws IOException {
+        // Example: draw a rectangle for the patch
+        float patchHeight = patch.getCell().getHeight(); // Assume Patch has a getCell() method
+        float patchLength = patch.getCell().getLength();
+        float gap = patch.getCell().getGap(); // Assuming patch has a gap for space between patches
+        String[] inkSet = patch.getInkSet(); // Assuming patch has a method to get ink set
+        PDResources resources = new PDResources();
+
+        Map<String, Float> inkValues = patch.getInkValues();
+
+        float c = inkValues.getOrDefault("C", 0f); // Default to 0 if missing
+        float m = inkValues.getOrDefault("M", 0f); // Default to 0 if missing
+        float y = inkValues.getOrDefault("Y", 0f); // Default to 0 if missing
+        float b = inkValues.getOrDefault("B", 0f); // Default to 0 if missing
+        float w = inkValues.getOrDefault("W", 0f);
+        float o = inkValues.getOrDefault("O", 0f);
+        float v = inkValues.getOrDefault("V", 0f); // Default to 0 if missing
+        float g = inkValues.getOrDefault("G", 0f); // Default to 0 if missing
+
+        PDSeparation all = new PDSeparation();
+        all.setColorantName("All");
+        all.setAlternateColorSpace(PDDeviceCMYK.INSTANCE);
+        all.setTintTransform(allTintTransform(document));
+        resources.put(COSName.getPDFName("All"), all);
+
+        PDSeparation whiteSeparation = new PDSeparation();
+        whiteSeparation.setColorantName("White");
+        whiteSeparation.setAlternateColorSpace(PDDeviceCMYK.INSTANCE);
+        whiteSeparation.setTintTransform(tintTransformWhite(document));
+        resources.put(COSName.getPDFName("Separation_White"), whiteSeparation);
+
+        PDSeparation orange = new PDSeparation();
+        orange.setColorantName("Orange");
+        orange.setAlternateColorSpace(PDDeviceRGB.INSTANCE);
+        orange.setTintTransform(createOrangeTintTransform());
+
+        PDDeviceN deviceNcs = new PDDeviceN();
+        deviceNcs.setColorantNames(Arrays.asList("Cyan", "Magenta", "Yellow", "Black", "White", "Orange"));
+        deviceNcs.setAlternateColorSpace(PDDeviceCMYK.INSTANCE);
+        deviceNcs.setTintTransform(makeTintTransform(document));
+
+        PDExtendedGraphicsState graphicsState = new PDExtendedGraphicsState();
+        graphicsState.setNonStrokingOverprintControl(true);
+
+        graphicsState.setOverprintMode(1);
+
+        COSName gsName = COSName.getPDFName("GS1");
+        resources.put(gsName, graphicsState);
+
+        COSName csName = COSName.getPDFName("CS1");
+        resources.put(csName, deviceNcs);
+
+        page.setResources(resources);
+
+        // transform
+        PDColorSpace colorSpace = resources.getColorSpace(csName);
+        PDColor underbase = new PDColor(new float[] { w }, whiteSeparation);
+
+        contentStream.setNonStrokingColor(underbase);
+        contentStream.addRect(x, yC, patchLength, patchHeight);
+        contentStream.fill(); // Fill and stroke the rectangle
+
+        contentStream.setGraphicsStateParameters(graphicsState);
+        PDColor color = new PDColor(new float[] { c, m, y, b }, PDDeviceCMYK.INSTANCE); // Assuming CMYK color space);
+        // PDColor strokingColor = new PDColor(new float[] { 1 }, orange); // Assuming
+        // 'o' is the tint value
+
+        /*
+         * contentStream.setLineWidth(0.5f); // Set line width for the rectangle
+         * //contentStream.setStrokingColor(strokingColor); // Set the stroke color
+         */
+
+        contentStream.setNonStrokingColor(color);
+        contentStream.addRect(x, yC, patchLength, patchHeight);
+        contentStream.fill(); // Fill and stroke the rectangle
+
+    }
+
+    private static PDFunctionType4 makeTintTransform(PDDocument document) throws IOException {
+        COSStream stream = document.getDocument().createCOSStream();
+
+        String pscode = "{pop pop pop pop pop 0 1 0 0}";
+
+        COSDictionary dict = new COSDictionary();
+        dict.setInt(COSName.FUNCTION_TYPE, 4);
+
+        COSArray domain = new COSArray();
+        for (int i = 0; i < 5; i++) {
+            domain.add(COSFloat.ZERO);
+            domain.add(COSFloat.ONE);
+        }
+        dict.setItem(COSName.DOMAIN, domain);
+
+        COSArray range = new COSArray();
+        for (int i = 0; i < 5; i++) {
+            range.add(new COSFloat(0.0f));
+            range.add(new COSFloat(1.0f));
+        }
+
+        dict.setItem(COSName.RANGE, range);
+
+        stream.addAll(dict);
+
+        // String psCode = "{6 -1 roll 5 -1 roll 4 -1 roll pop}";
+        /* String psCode = "{ pop pop pop pop pop 0 0 0 0 }"; */
+        try (var os = stream.createRawOutputStream()) {
+            os.write(pscode.getBytes());
+        }
+        return new PDFunctionType4(stream);
+    }
+    /*
+     * private static PDFunctionType4 tintTransform(PDDocument document) throws
+     * IOException {
+     * 
+     * COSStream stream = document.getDocument().createCOSStream();
+     * 
+     * COSDictionary dict = new COSDictionary();
+     * dict.setInt(COSName.FUNCTION_TYPE, 4);
+     * 
+     * COSArray domain = new COSArray();
+     * for (int i = 0; i < 5; i++) {
+     * domain.add(COSFloat.ZERO);
+     * domain.add(COSFloat.ONE);
+     * }
+     * dict.setItem(COSName.DOMAIN, domain);
+     * 
+     * COSArray range = new COSArray();
+     * for (int i = 0; i < 4; i++) {
+     * range.add(new COSFloat(0.0f));
+     * range.add(new COSFloat(1.0f));
+     * }
+     * 
+     * dict.setItem(COSName.RANGE, range);
+     * 
+     * stream.addAll(dict);
+     * 
+     * String psCode = "{5 -1 roll 4 -1 roll pop}";
+     * /* String psCode = "{ pop pop pop pop pop 0 0 0 0 }";
+     *//* */
+    /*
+     * try (var os = stream.createOutputStream()) {
+     * os.write(psCode.getBytes());
+     * }
+     * return new PDFunctionType4(stream);
+     * }
+     * 
+     */
+
+    // Method to create a tint transform for the each colorant
+
+    private PDFunctionType2 createOrangeTintTransform() throws IOException {
+        COSDictionary functionDict = new COSDictionary();
+        functionDict.setInt(COSName.FUNCTION_TYPE, 2); // Type 2 function
+
+        // Set the domain (input range for the tint value)
+        COSArray domain = new COSArray();
+        domain.add(new COSFloat(0f)); // Minimum tint value
+        domain.add(new COSFloat(1f)); // Maximum tint value
+        functionDict.setItem(COSName.DOMAIN, domain);
+
+        // Set the range (output range for RGB values)
+        COSArray range = new COSArray();
+        range.add(new COSFloat(1f)); // Red
+        range.add(new COSFloat(0.5f)); // Green
+        range.add(new COSFloat(0f)); // Blue
+        functionDict.setItem(COSName.RANGE, range);
+
+        // Set the C0 and C1 values for interpolation
+        COSArray c0 = new COSArray(); // Output values for tint = 0
+        c0.add(new COSFloat(1f)); // Red
+        c0.add(new COSFloat(0.5f)); // Green
+        c0.add(new COSFloat(0f)); // Blue
+        functionDict.setItem(COSName.C0, c0);
+
+        COSArray c1 = new COSArray(); // Output values for tint = 1
+        c1.add(new COSFloat(1f)); // Red
+        c1.add(new COSFloat(0.5f)); // Green
+        c1.add(new COSFloat(0f)); // Blue
+        functionDict.setItem(COSName.C1, c1);
+
+        // Set the exponent for interpolation
+        functionDict.setItem(COSName.N, new COSFloat(1f)); // Linear interpolation
+
+        return new PDFunctionType2(functionDict);
+    }
+
+    private static PDFunctionType2 allTintTransform(PDDocument document) throws IOException {
+        // Create a COSStream for the function
+        COSStream stream = document.getDocument().createCOSStream();
+
+        // Create the function dictionary
+        COSDictionary dict = new COSDictionary();
+        dict.setInt(COSName.FUNCTION_TYPE, 2); // Type 2: Piecewise-Linear Function
+
+        // Define the domain (input values). For this example, we'll assume the input
+        // range is [0, 1].
+        COSArray domain = new COSArray();
+        for (int i = 0; i < 5; i++) {
+            domain.add(COSFloat.ZERO); // Each input value from 0 to 1
+            domain.add(COSFloat.ONE);
+        }
+        dict.setItem(COSName.DOMAIN, domain);
+
+        // Define the range (output values). In this case, we're applying a simple
+        // linear function.
+        COSArray range = new COSArray();
+        for (int i = 0; i < 4; i++) {
+            range.add(new COSFloat(0.0f)); // Adjust as per the required output (i.e., CMYK ranges)
+            range.add(new COSFloat(1.0f)); // You can modify these values for different color transformations
+        }
+        dict.setItem(COSName.RANGE, range);
+
+        // Add the function dictionary to the stream
+        stream.addAll(dict);
+
+        // Define the piecewise function code (PostScript code for the linear function)
+        String psCode = "{ 5 -1 roll pop }"; // Example PostScript code for a simple transformation
+
+        // Write the PostScript code to the output stream
+        try (OutputStream os = stream.createOutputStream()) {
+            os.write(psCode.getBytes(StandardCharsets.UTF_8));
+        }
+
+        // Return a new PDFunctionType2 using the stream
+        return new PDFunctionType2(stream);
+    }
+
+    private static PDFunctionType2 tintTransformWhite(PDDocument document) throws IOException {
+        // Create a COSStream for the function
+        COSStream stream = document.getDocument().createCOSStream();
+
+        // Create a COSDictionary for the function
+        COSDictionary dict = new COSDictionary();
+
+        // Set the function type to 2 (Sampled function)
+        dict.setInt(COSName.FUNCTION_TYPE, 2);
+
+        // Define the domain of the function (input range from 0 to 1)
+        COSArray domain = new COSArray();
+        domain.add(COSFloat.ZERO); // Starting point of domain (0)
+        domain.add(COSFloat.ONE); // End point of domain (1)
+        dict.setItem(COSName.DOMAIN, domain);
+
+        // Define C0 and C1 (sampled outputs for inputs 0 and 1)
+        // C0 is for the input value 0 (no white ink)
+        COSArray C0 = new COSArray();
+        C0.add(new COSFloat(0.0f)); // No white ink (for CMYK)
+        C0.add(new COSFloat(0.0f)); // No white ink (for CMYK)
+        C0.add(new COSFloat(0.0f)); // No white ink (for CMYK)
+        C0.add(new COSFloat(0.0f)); // No white ink (for White ink)
+
+        // C1 is for the input value 1 (full white ink)
+        COSArray C1 = new COSArray();
+        C1.add(new COSFloat(1.0f)); // White ink at full intensity (for CMYK)
+        C1.add(new COSFloat(1.0f)); // White ink at full intensity (for CMYK)
+        C1.add(new COSFloat(1.0f)); // White ink at full intensity (for CMYK)
+        C1.add(new COSFloat(1.0f)); // Full white ink intensity
+
+        // Add C0 and C1 to the dictionary
+        dict.setItem(COSName.C0, C0);
+        dict.setItem(COSName.C1, C1);
+
+        // Set the number of samples (1 means 2 points, at 0 and 1)
+        dict.setInt(COSName.N, 1); // Only two sample points: 0 and 1
+
+        // Add the dictionary to the COSStream
+        stream.addAll(dict);
+
+        // Return the PDF Function Type 2 object
+        return new PDFunctionType2(stream);
+    }
+
+}

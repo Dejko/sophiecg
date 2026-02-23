@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SophieCG</title>
+    <script src="https://unpkg.com/chroma-js@2.1.0"></script>
+</head>
+
+<style>
+    .loading-container {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        background-color: black;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 1.5s ease-out;
+        /* Smooth fade-out effect */
+    }
+
+    .loaderBox {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+
+    .loadAnimation {
+        animation: fadeOut 2s ease-out infinite;
+    }
+
+    @keyframes fadeOut {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+    }
+</style>
+
+
+<body>
+
+    <!-- Loading Animation (spinner) -->
+    <div id="loading" class="loading-container">
+        <div class="loaderBox">
+            <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- Define calligraphy-style font for Sophie -->
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+                        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap');
+
+                        .calligraphy {
+                            font-family: 'Dancing Script', cursive;
+                            font-size: 62px;
+                            fill: #918989;
+                        }
+
+                        .roboto {
+                            font-family: 'Roboto', sans-serif;
+                            font-size: 18px;
+                            fill: #44005f;
+                        }
+
+
+                        .animate {
+                            animation: fadeIn 3s ease-in-out infinite;
+                        }
+
+                        @keyframes fadeIn {
+
+                            0%,
+                            100% {
+                                opacity: 0;
+                            }
+
+                            50% {
+                                opacity: 1;
+                            }
+                        }
+                    </style>
+                </defs>
+
+                <!-- Background color grid -->
+                <g class="colorGrid">
+                    <rect x="10" y="10" width="30" height="30" fill="#FFCDD2" />
+                    <rect x="50" y="10" width="30" height="30" fill="#F8BBD0" />
+                    <rect x="90" y="10" width="30" height="30" fill="#E1BEE7" />
+                    <rect x="130" y="10" width="30" height="30" fill="#D1C4E9" />
+
+                    <rect x="10" y="50" width="30" height="30" fill="#C5CAE9" />
+                    <rect x="50" y="50" width="30" height="30" fill="#BBDEFB" />
+                    <rect x="90" y="50" width="30" height="30" fill="#B3E5FC" />
+                    <rect x="130" y="50" width="30" height="30" fill="#B2EBF2" />
+
+                    <rect x="10" y="90" width="30" height="30" fill="#B2DFDB" />
+                    <rect x="50" y="90" width="30" height="30" fill="#C8E6C9" />
+                    <rect x="90" y="90" width="30" height="30" fill="#DCEDC8" />
+                    <rect x="130" y="90" width="30" height="30" fill="#F0F4C3" />
+
+                    <rect x="10" y="130" width="30" height="30" fill="#FFF9C4" />
+                    <rect x="50" y="130" width="30" height="30" fill="#FFECB3" />
+                    <rect x="90" y="130" width="30" height="30" fill="#FFE0B2" />
+                    <rect x="130" y="130" width="30" height="30" fill="#FFCCBC" />
+                </g>
+
+                <!-- Calligraphy-style "Sophie" text -->
+                <text x="10" y="190" class="calligraphy animate">Sophie</text>
+            </svg>
+        </div>
+    </div>
+
+    <script type="module" src="js/sophie.js"></script>
+    <script type="module" src="js/ui/sidebar/gridTab/sidebar-components.js"></script>
+    <script type="module" src="js/ui/viewport/contextMenu/contextmenu-component.js"></script>
+    <script type="module" src="js/ui/viewport/selectionBar/selectionBar-component.js"></script>
+    <!--<script type="module" src="js/ui/viewport/sophieBar/sophieBar-component.js"></script>-->
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/navbar.css" />
+    <link rel="stylesheet" href="css/sidebar.css" />
+</body>
+
+</html>

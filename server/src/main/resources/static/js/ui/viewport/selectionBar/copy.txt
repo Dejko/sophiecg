@@ -1,0 +1,50 @@
+export default class SelectionBar extends HTMLElement {
+    constructor() {
+        super();
+        this.selection = {}
+        this.origin = {}
+
+        this.innerHTML = `
+        <style>
+        .selectionBar-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .origin-container {
+          
+            border: 1px solid #ccc;
+      
+        }
+        </style>
+        
+        <div class='selectionBar-container'>
+            <p>Selection Bar. Is working now?</p>
+            <div class='origin-container'>Right-click a patch to see details here.</div>
+       
+            // i want to render a patch rectangle here with inkvalues displayed and color background from those values
+            
+
+        </div>`;
+
+        this.originContainer = this.querySelector('.origin-container'); // Reference to update later
+    }
+
+    connectedCallback() {
+        // Listen for the custom event
+        document.addEventListener('grid-updated', (event) => {
+            const patch = event.detail; // Get the patch data from the event
+            this.showPatchDetails(patch);
+            this.origin = patch;
+        });
+    }
+
+    showPatchDetails(patch) {
+        this.originContainer.innerHTML = `<p>Patch Details:</p>
+                                          <div>${JSON.stringify(patch, null, 2)}</div>`;
+    }
+}
+
+customElements.define('selectionbar-component', SelectionBar);

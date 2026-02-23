@@ -1,0 +1,369 @@
+import { globalStateController } from "../../../store/stateController.js";
+
+export default class SelectionBar extends HTMLElement {
+    constructor() {
+        super();
+        this.selection = {};
+        this.origin = {};
+        this.state = globalStateController.getState();
+        this.matrix = this.state.matrix;
+        this.leftSidePatch = {}
+        this.rightSidePatch = {}
+
+        this.innerHTML = `
+        <style>
+        .selectionBar-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+           
+        }
+
+        .patch-wrapper {
+            display: flex;
+              align-items: center;
+           
+            justify-content: space-evenly; 
+            width: 100%; 
+        }
+
+        .patch-container {
+          display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+            position: relative;
+            width: 200px; /* Adjust based on your need */
+            height: auto;
+        }
+
+        .patch-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 150px;
+            height: 150px;
+            color: white;
+            font-weight: bold;
+            border: 1px solid black;
+            margin-top: 10px;
+            position: relative;
+            line-height: 16px;
+            color: black;
+        }
+        </style>
+        
+        <div class='selectionBar-container'>
+      
+        <div class="patch-wrapper ">
+        <div class='patch-container left-patch'>Left side here.</div>
+         <div class='change-container left-side'>Change here.</div>
+        <div class='patch-container origin-patch'>Right-click a patch to see details here.</div>
+        <div class='change-container right-side'>Change here.</div>
+        <div class='patch-container right-patch'>Right side here.</div>
+        </div>
+            
+         
+        </div>`
+
+        this.leftContainer = this.querySelector('.left-patch'); // Reference to update later
+        this.originContainer = this.querySelector('.origin-patch'); // Reference to update later
+        this.rightContainer = this.querySelector('.right-patch'); // Reference to update later
+        this.leftChangeContainer = this.querySelector('.left-side'); // Reference to update later
+        this.rightChangeContainer = this.querySelector('.right-side');
+    }
+
+    connectedCallback() {
+        document.addEventListener('grid-updated', (event) => {
+            const patch = event.detail;
+            this.showPatchDetails(patch);
+            this.origin = patch;
+        });
+
+        document.addEventListener('grid-generated', (event) => {
+            event.preventDefault(); // Fix: Ensure event is properly handled
+
+            // Reset state
+            this.selection = {};
+            this.origin = {};
+            this.state = globalStateController.getState();
+            this.matrix = this.state.matrix;
+            this.leftSidePatch = {}
+            this.rightSidePatch = {}
+
+
+            // Clear UI
+            this.originContainer.innerHTML = `<p>Left side here.</p>`;
+            this.leftContainer.innerHTML = `<p>Right-click a patch to see details here.</p>`;
+            this.rightContainer.innerHTML = `<p>Right side here.</p>`;
+
+            console.log('Grid reset, selection cleared.');
+        });
+    }
+
+    showPatchDetails(patch) {
+        const { inkValues, cell, row, _row, col } = patch;
+
+        const leftSidePatch = this.matrix[row][0]
+        const rightSidePatch = this.matrix[row][this.matrix[row].length - 1]
+
+
+
+        const numLeftSteps = col; // Steps to the left-most patch
+        const numRightSteps = this.matrix[row].length - col - 1; // Steps to the right-most patch
+
+
+        console.log('left', numLeftSteps)
+        console.log('right', numRightSteps)
+
+        let leftInkValues, rightInkValues;
+
+        if (leftSidePatch && rightSidePatch) {
+            leftInkValues = leftSidePatch.inkValues || {};
+            rightInkValues = rightSidePatch.inkValues || {};
+
+        }
+
+        // Calculate background color from ink values
+        const color = this.calculatePatchColor(inkValues);
+        const leftColor = this.calculatePatchColor(leftInkValues);
+        const rightColor = this.calculatePatchColor(rightInkValues);
+
+        // Create patch rectangle
+        const patchDiv = document.createElement('div');
+        patchDiv.classList.add('patch-box');
+        patchDiv.style.backgroundColor = color;
+
+        // Display ink values inside
+        patchDiv.innerHTML = Object.entries(inkValues)
+            .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+            .join(""); // Join all <p> elements into one string
+
+
+        // Create Left Patch Box
+        const leftPatch = document.createElement('div');
+        leftPatch.classList.add('patch-box');
+        leftPatch.style.backgroundColor = leftColor;
+        leftPatch.style.position = "relative";
+
+        // Container for ink values and inputs
+        const inkValuesContainer = document.createElement('div');
+        inkValuesContainer.classList.add('ink-values-container');
+
+        if (leftInkValues) {
+            Object.entries(leftInkValues).forEach(([ink, value]) => {
+                // Create a wrapper for each ink value + input
+                const inkItem = document.createElement('div');
+                inkItem.classList.add('ink-item');
+
+                // Label for ink
+                const inkLabel = document.createElement('label');
+                inkLabel.innerHTML = `${ink}: `;
+                inkLabel.setAttribute('for', `input-${ink}`); // Associate with input
+
+                // Create input field
+                const inputElement = document.createElement('input');
+                inputElement.type = 'number';
+                inputElement.id = `input-${ink}`;
+                inputElement.value = value.toFixed(3); // Ensure 3 decimal places
+                inputElement.min = 0;
+                inputElement.max = 1;
+                inputElement.step = 0.005; // Allows stepping in 3 decimal places
+
+                // Event listener to update inkValues
+                inputElement.addEventListener('input', (event) => {
+                    let updatedValue = parseFloat(event.target.value);
+
+                    if (updatedValue > 1) updatedValue = 1; // Ensure max value
+                    if (updatedValue < 0 || isNaN(updatedValue)) updatedValue = 0; // Prevent invalid values
+
+                    inputElement.value = updatedValue.toFixed(3); // Format as 3 decimal places
+                    leftInkValues[ink] = updatedValue; // Update inkValues object
+                });
+
+                // Append elements
+                inkItem.appendChild(inkLabel);
+                inkItem.appendChild(inputElement);
+                inkValuesContainer.appendChild(inkItem);
+            });
+
+            this.leftSidePatch = leftSidePatch
+
+            const leftInkChange = this.calculateInkChangePerPatch(inkValues, leftInkValues, numLeftSteps);
+
+            this.leftChangeContainer.innerHTML = JSON.stringify(leftInkChange, null, 2);
+            console.log("Left Ink Change per Patch:", leftInkChange);
+
+            // Create the submit button
+            const confirmButton = document.createElement('button');
+            confirmButton.innerText = "Confirm Values";
+            confirmButton.addEventListener('click', () => {
+                // Ensure all values are entered (no undefined values)
+                const allValuesEntered = Object.values(leftInkValues).every(value => value !== undefined && !isNaN(value));
+
+                if (allValuesEntered) {
+                    this.dispatchEvent(new CustomEvent('sidePatch-updated', {
+                        detail: {
+                            patch: this.leftSidePatch,
+                            updatedInkValues: leftInkValues,
+                            change: leftInkChange,
+                            steps: numLeftSteps
+                        },
+                        bubbles: true,
+                        composed: true
+                    }));
+                    console.log("Event dispatched: ", leftInkValues);
+
+                    // Update left side patches
+                    for (let i = col - 1; i >= 0; i--) {
+                        Object.keys(leftInkChange).forEach(ink => {
+                            this.matrix[row][i].inkValues[ink] = inkValues[ink] + leftInkChange[ink] * (col - i);
+                        });
+                    }
+
+                } else {
+                    alert("Please enter all ink values before confirming.");
+                }
+            });
+            inkValuesContainer.appendChild(confirmButton);
+
+
+
+        }
+
+
+        leftPatch.appendChild(inkValuesContainer);
+
+        // Create Right Patch Box
+        const rightPatch = document.createElement('div');
+        rightPatch.classList.add('patch-box');
+        rightPatch.style.backgroundColor = rightColor;
+        rightPatch.style.position = "relative";
+
+        // Container for ink values and inputs
+        const inkValuesContainerRight = document.createElement('div');
+        inkValuesContainerRight.classList.add('ink-values-container-right');
+
+        if (rightInkValues) {
+            Object.entries(rightInkValues).forEach(([ink, value]) => {
+                // Create a wrapper for each ink value + input
+                const inkItem = document.createElement('div');
+                inkItem.classList.add('ink-item');
+
+                // Label for ink
+                const inkLabel = document.createElement('label');
+                inkLabel.innerHTML = `${ink}: `;
+                inkLabel.setAttribute('for', `input-${ink}`); // Associate with input
+
+                // Create input field
+                const inputElement = document.createElement('input');
+                inputElement.type = 'number';
+                inputElement.id = `input-${ink}`;
+                inputElement.value = value.toFixed(3); // Ensure 3 decimal places
+                inputElement.min = 0;
+                inputElement.max = 1;
+                inputElement.step = 0.005; // Allows stepping in 3 decimal places
+
+                // Event listener to update inkValues
+                inputElement.addEventListener('input', (event) => {
+                    let updatedValue = parseFloat(event.target.value);
+
+                    if (updatedValue > 1) updatedValue = 1; // Ensure max value
+                    if (updatedValue < 0 || isNaN(updatedValue)) updatedValue = 0; // Prevent invalid values
+
+                    inputElement.value = updatedValue.toFixed(3); // Format as 3 decimal places
+                    rightInkValues[ink] = updatedValue; // Update inkValues object
+
+                });
+
+
+                // Append elements
+                inkItem.appendChild(inkLabel);
+                inkItem.appendChild(inputElement);
+                inkValuesContainerRight.appendChild(inkItem);
+            });
+
+
+            this.rightSidePatch = rightSidePatch
+
+            const rightInkChange = this.calculateInkChangePerPatch(inkValues, rightInkValues, numRightSteps);
+            this.rightChangeContainer.innerHTML = JSON.stringify(rightInkChange, null, 2);
+            console.log("Right Ink Change per Patch:", rightInkChange);
+
+            // Create the submit button
+            const confirmButton = document.createElement('button');
+            confirmButton.innerText = "Confirm Values";
+            confirmButton.addEventListener('click', () => {
+                // Ensure all values are entered (no undefined values)
+                const allValuesEntered = Object.values(rightInkValues).every(value => value !== undefined && !isNaN(value));
+
+                if (allValuesEntered) {
+                    this.dispatchEvent(new CustomEvent('sidePatch-updated', {
+                        detail: {
+                            patch: this.rightSidePatch,
+                            updatedInkValues: rightInkValues,
+                            change: rightInkChange,
+                            steps: numRightSteps
+                        },
+                        bubbles: true,
+                        composed: true
+                    }));
+
+                    for (let i = col + 1; i < this.matrix[row].length; i++) {
+                        Object.keys(rightInkChange).forEach(ink => {
+                            this.matrix[row][i].inkValues[ink] = inkValues[ink] + rightInkChange[ink] * (i - col);
+                        });
+                    }
+                    console.log("Event dispatched: ", rightInkValues);
+                } else {
+                    alert("Please enter all ink values before confirming.");
+                }
+            });
+            inkValuesContainerRight.appendChild(confirmButton);
+
+        }
+        rightPatch.appendChild(inkValuesContainerRight);
+
+        // Update UI
+        this.originContainer.innerHTML = `<p>Origin: ${_row}, ${col}</p>`;
+        this.originContainer.appendChild(patchDiv);
+        this.leftContainer.innerHTML = `<p>Left side: ${_row}, 0</p>`;
+        this.leftContainer.appendChild(leftPatch)
+        this.rightContainer.innerHTML = `<p>Right side: ${_row}, ${this.matrix[row].length}</p>`;
+        this.rightContainer.appendChild(rightPatch)
+
+
+        console.log('matrix', this.rightSidePatch, leftSidePatch)
+
+    }
+
+    calculatePatchColor(inkValues) {
+        // Convert ink values into an RGB color
+        const c = 255 * (1 - inkValues.C); // Cyan affects red
+        const m = 255 * (1 - inkValues.M); // Magenta affects green
+        const y = 255 * (1 - inkValues.Y); // Yellow affects blue
+        return `rgb(${c}, ${m}, ${y})`;
+    }
+
+
+    calculateInkChangePerPatch(originInkValues, sideInkValues, numPatches) {
+        if (!originInkValues || !sideInkValues || numPatches <= 0) return {};
+
+        let inkChange = {};
+
+        Object.keys(originInkValues).forEach((ink) => {
+            let originValue = originInkValues[ink] || 0;
+            let sideValue = sideInkValues[ink] || 0;
+
+            // Calculate the change per patch
+            inkChange[ink] = ((sideValue - originValue) / numPatches).toFixed(3);
+        });
+
+        return inkChange;
+    }
+}
+
+customElements.define('selectionbar-component', SelectionBar);

@@ -1,0 +1,242 @@
+import { globalStateController } from "../../../store/stateController.js";
+
+export default class SelectionBar extends HTMLElement {
+    constructor() {
+        super();
+        this.state = globalStateController.getState();
+        this.matrix = this.state.matrix;
+        this.origin = {};
+        this.direction = 'horizontal'
+
+        this.innerHTML = `
+        <style>
+            .sb-header{
+              
+                text-align: center;
+                padding-bottom: 16px;
+            }
+
+           .sb-content {
+                display: flex;
+                align-items: center;
+                justify-content: space-evenly; 
+                width: 100%; 
+            }
+            
+            .sb-box {
+                border: 1px solid black;
+
+            }
+
+            .origin-header, .left-header, .right-header, .left-change-header, .right-change-header {
+                background-color: gray;
+                text-align: center;
+                
+                padding: 8px 8px 8px 8px;
+            }
+             
+            .input-field {
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+                outline:none;
+                border: none;
+                width: 30px;
+                background-color: transparent;
+            }
+
+             .origin-container, .left-container, .right-container, .left-change-container, .right-change-container {
+                padding: 10px;
+                text-align: center;
+            }
+
+           
+        </style>
+        <div class="sb-header">This is header</div>
+        <div class="sb-content">
+            <div class="left-wrapper sb-box">
+             <div class="left-header">
+                        <input class="lh-row input-field"/>
+                        <input class="lh-col input-field"/>
+                        </div>
+                    <div class="left-container">...</div>
+                
+            </div>
+            <div class="left-change-wrapper sb-box">
+                     <div class="left-change-header">
+                        Step
+                    </div>
+                     <div class="left-change-container">change</div>
+            </div>
+                <div class="origin-wrapper sb-box">
+                    <div class="origin-header">
+                        <input class="oh-row input-field"/>
+                        <input class="oh-col input-field"/>
+                    </div>
+                    <div class="origin-container">Select patch...hhgs</div>
+                </div>
+             <div class="right-change-wrapper sb-box">
+                     <div class="right-change-header">
+                        Step
+                    </div>
+                     <div class="right-change-container">change</div>
+            </div>
+            <div class="right-wrapper sb-box">
+             <div class="right-header">
+                        <input class="rh-row input-field"/>
+                        <input class="rh-col input-field"/>
+                        </div>
+                    <div class="right-container">...</div>
+                
+            </div>
+        </div>
+        `
+
+        this.leftContainer = this.querySelector('.left-container'); // Reference to update later
+        this.leftContainerHeader = this.querySelector('.left-header');
+        this.lhRow = this.querySelector('.lh-row');
+        this.lhCol = this.querySelector('.lh-col');
+        this.originContainer = this.querySelector('.origin-container');
+        this.originContainerHeader = this.querySelector('.origin-header');
+        this.ohRow = this.querySelector('.oh-row');
+        this.ohCol = this.querySelector('.oh-col');
+        this.rightContainer = this.querySelector('.right-container');
+        this.rightContainerHeader = this.querySelector('.right-header');
+        this.rhRow = this.querySelector('.rh-row');
+        this.rhCol = this.querySelector('.rh-col');
+        this.leftChangeContainer = this.querySelector('.left-change-container');
+        this.rightChangeContainer = this.querySelector('.right-change-container');
+
+    }
+
+    connectedCallback() {
+        document.addEventListener('grid-updated', (event) => {
+            const patch = event.detail;
+            this.showOriginDetails(patch);
+            this.origin = patch;
+            this.showSidePatches(this.origin, this.direction)
+        });
+
+        document.addEventListener('grid-generated', (event) => {
+            event.preventDefault(); // Fix: Ensure event is properly handled
+
+            // Reset state
+            this.selection = {};
+            this.origin = {};
+            this.state = globalStateController.getState();
+            this.matrix = this.state.matrix;
+            this.leftSidePatch = {}
+            this.rightSidePatch = {}
+
+
+            /* Clear UI
+            this.originContainer.innerHTML = `<p>Left side here.</p>`;
+            this.leftContainer.innerHTML = `<p>Right-click a patch to see details here.</p>`;
+            this.rightContainer.innerHTML = `<p>Right side here.</p>`;
+
+            console.log('Grid reset, selection cleared.');*/
+        });
+    }
+
+    showOriginDetails(patch) {
+        const { inkValues, cell, row, _row, col } = patch;
+        const originPatch = this.originContainer;
+        // Display ink values inside
+        originPatch.innerHTML = Object.entries(inkValues)
+            .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+            .join(""); // Join all <p> elements into one string
+        this.ohRow.value = `${_row}`
+        this.ohCol.value = `${col}`
+        //this.originContainerHeader.innerHTML = `${_row}, ${col}`;
+    }
+
+    showSidePatches(patch, direction) {
+        const { inkValues, cell, row, _row, col } = patch;
+
+        const leftSide = this.leftContainer;
+        const rightSide = this.rightContainer;
+
+        if (direction === 'horizontal') {
+            const startPatch = this.matrix[row][0]; // Start patch at the left-most column
+            const endPatch = this.matrix[row][this.matrix[row].length - 1]; // End patch at the right-most column
+
+            // Display ink values inside for the left-most patch
+            leftSide.innerHTML = Object.entries(startPatch.inkValues)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+            this.lhRow.value = `${startPatch._row}`;
+            this.lhCol.value = `${startPatch.col}`;
+
+            // Display ink values inside for the right-most patch
+            rightSide.innerHTML = Object.entries(endPatch.inkValues)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+            this.rhRow.value = `${endPatch._row}`;
+            this.rhCol.value = `${endPatch.col}`;
+
+            const numLeftSteps = col; // Steps to the left-most patch
+            const numRightSteps = this.matrix[row].length - col - 1; // Steps to the right-most patch
+
+
+
+            const leftStep = this.calculateInkChangePerPatch(inkValues, startPatch.inkValues, numLeftSteps);
+            const rightStep = this.calculateInkChangePerPatch(inkValues, endPatch.inkValues, numRightSteps);
+
+            console.log(`inks:`, leftStep, rightStep)
+
+            this.leftChangeContainer.innerHTML = Object.entries(leftStep)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+
+            this.rightChangeContainer.innerHTML = Object.entries(rightStep)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+
+        }
+        else if (direction === 'vertical') {
+            const startPatch = this.matrix[0][col]; // Start patch at the top-most row
+            const endPatch = this.matrix[this.matrix.length - 1][col]; // End patch at the bottom-most row
+
+            // Display ink values inside for the top-most patch
+            leftSide.innerHTML = Object.entries(startPatch.inkValues)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+            this.lhRow.value = `${startPatch._row}`;
+            this.lhCol.value = `${startPatch.col}`;
+
+            // Display ink values inside for the bottom-most patch
+            rightSide.innerHTML = Object.entries(endPatch.inkValues)
+                .map(([ink, value]) => `<p>${ink}: ${(value * 100).toFixed(1)} %</p>`)
+                .join(""); // Join all <p> elements into one string
+            this.rhRow.value = `${endPatch._row}`;
+            this.rhCol.value = `${endPatch.col}`;
+
+            const numTopSteps = row; // Steps to the top-most patch
+            const numBottomSteps = this.matrix.length - row - 1; // Steps to the bottom-most patch
+
+            const upwardStep = this.calculateInkChangePerPatch(patch.inkValues, startPatch.inkValues, numTopSteps)
+            const downwardStep = this.calculateInkChangePerPatch(patch.inkValues, endPatch.inkValues, numBottomSteps);
+
+
+        }
+    }
+
+
+    calculateInkChangePerPatch(originInkValues, sideInkValues, numPatches) {
+        if (!originInkValues || !sideInkValues || numPatches <= 0) return {};
+
+        let inkChange = {};
+
+        Object.keys(originInkValues).forEach((ink) => {
+            let originValue = originInkValues[ink] || 0;
+            let sideValue = sideInkValues[ink] || 0;
+
+            // Calculate the change per patch
+            inkChange[ink] = ((sideValue - originValue) / numPatches).toFixed(3);
+        });
+
+        return inkChange;
+    }
+}
+
+customElements.define('selectionbar-component', SelectionBar);

@@ -1,0 +1,17 @@
+{
+    "gridName": "default",
+    "frameLength": 666,
+    "substrateWidth": 222,
+    "startOffset": 30,
+    "sideMargin": 1,
+    "patchLength": 15,
+    "patchHeight": 15,
+    "patchGap": 1,
+    "inkSet": [
+        "cyan",
+        "magenta",
+        "yellow",
+        "white"
+    ],
+    "fill": "random"
+}

@@ -1,0 +1,36 @@
+  private PDFunctionType2 createIdentityFunction(int numColorants) {
+        COSDictionary functionDict = new COSDictionary();
+        functionDict.setInt(COSName.FUNCTION_TYPE, 2); // Type 2 function (interpolated function)
+
+        // Define the domain (input range)
+        COSArray domain = new COSArray();
+        domain.add(new COSFloat(0f));
+        domain.add(new COSFloat(1f));
+        functionDict.setItem(COSName.DOMAIN, domain);
+
+        // Define the range (output range)
+        COSArray range = new COSArray();
+        for (int i = 0; i < numColorants; i++) {
+            range.add(new COSFloat(0f));
+            range.add(new COSFloat(1f));
+        }
+        functionDict.setItem(COSName.RANGE, range);
+
+        // Define the function coefficients
+        COSArray c0 = new COSArray(); // Output value when input is 0
+        for (int i = 0; i < numColorants; i++) {
+            c0.add(new COSFloat(0f));
+        }
+        functionDict.setItem(COSName.C0, c0);
+
+        COSArray c1 = new COSArray(); // Output value when input is 1
+        for (int i = 0; i < numColorants; i++) {
+            c1.add(new COSFloat(1f));
+        }
+        functionDict.setItem(COSName.C1, c1);
+
+        // Define the interpolation exponent
+        functionDict.setFloat(COSName.N, 1f);
+
+        return new PDFunctionType2(functionDict);
+    }
